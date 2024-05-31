@@ -1,4 +1,4 @@
-# arc-private-base-env
+# arc-private-base-env ※作成中
 
 ## はじめに
 本 Bicep は Azure Arc (Private Link) の環境を作成するBicepです
