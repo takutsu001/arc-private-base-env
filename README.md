@@ -1,22 +1,19 @@
-# arc-private-base-env ※作成中
-
+# arc-private-base-env
 ## はじめに
-本 Bicep は Azure Arc (Private Link) の環境を作成するBicepです
+本 Bicep は [Azure Files 検証環境用](https://zenn.dev/microsoft/articles/zenn-arc-esu-private) のベース環境を作成するBicepです
 
- [vpngw-env](https://github.com/takutsu001/vpngw-env) をベースに作成しているので、VPN Gateway の経路交換はBGPではなくルートベースとなります
- 
 ## 構成図
-![](/images/vpngw-topology.png)
+![](arcprivate-topology.png)
 
 > [!NOTE]
-> - 本環境では Azure Firewall は作成されません ( [vnet-peering-base-env](https://github.com/takutsu001/vnet-peering-base-env) をベースにしているため `AzureFirewallSubnet` は作成されますが利用しません) 
+> - 本環境では オンプレVM と DNS Private Resolver は作成されません (サブネットは作成されます) 
 > - 本Bicepは約30分程度で完了します (VPN Gateway の作成に時間が掛かるため、少し長めとなります。ご注意ください)
 
 > [!WARNING]
-> 本環境は HUB の踏み台サーバーを経由して Spokeやオンプレ の VM にアクセスするような構成です。NSG で SSH(22) への接続を許可するルールを作成していますが、セキュリティリスクが高いため、あくまでも検証用途としてご利用ください（本来は Azure Bastion や Azure Firewall を利用して踏み台サーバーへアクセスさせるべきですが、費用を下げるため NSG で穴あけを行っています）
+> 本環境は オンプレの DNS サーバーを経由して オンプレや Azure の VM にアクセスするような構成です。NSG で RDP(3389) への接続を許可するルールを作成していますが、セキュリティリスクが高いため、あくまでも検証用途としてご利用ください（本来は Azure Bastion や Azure Firewall を利用して踏み台サーバーへアクセスさせるべきですが、費用を下げるため NSG で穴あけを行っています）
 
 ### 前提条件
-ローカルPCでBicepを実行する場合は Azure CLI と Bicep CLI のインストールが必要となります。私はVS Code (Visual Studio Code) を利用してBicepファイルを作成しているのですが、結構使いやすいのでおススメです。以下リンクに VS Code、Azure CLI、Bicep CLI のインストール手順が纏まっています
+ローカル PC で Bicep を実行する場合は Azure CLI と Bicep CLI のインストールが必要となります。私はVS Code (Visual Studio Code) を利用してBicepファイルを作成しているのですが、結構使いやすいのでおススメです。以下リンクに VS Code、Azure CLI、Bicep CLI のインストール手順が纏まっています
 
 https://learn.microsoft.com/ja-jp/azure/azure-resource-manager/bicep/install
 
@@ -24,7 +21,7 @@ https://learn.microsoft.com/ja-jp/azure/azure-resource-manager/bicep/install
 本リポジトリをローカルPCにクローンし、パラメータファイル (main.prod.bicepparam) を修正してご利用ください
 
 **main.prod.bicepparam**
-![](/images/vpngw-bicepparam.png)
+![](/images/arcprivate-bicepparam.png)
 
 > [!IMPORTANT]
 > NSGルール作成用の ***myipaddress*** の修正は必須となります。それ以外のパラメータの修正は任意で実施してください。Azureに接続するクライアントのパブリックIPアドレスが分からない場合は[こちらのサイト](https://www.cman.jp/network/support/go_access.cgi)で確認することができます
@@ -37,8 +34,6 @@ main.prod.bicepparam
 ∟ modules/
 　　∟ hubEnv.bicep
 　　∟ onpreEnv.bicep
-　　∟ spoke1Env.bicep
-　　∟ spoke2Env.bicep
 　　∟ vpnConnection.bicep
 ```
 
@@ -69,6 +64,5 @@ az deployment sub create --location japaneast -f main.bicep -p main.prod.biceppa
 az logout
 ```
 
-## その他
- - 本Bicepは [vnet-peering-base-env](https://github.com/takutsu001/vnet-peering-base-env) をベースに作成しています
- - 本Bicepでは hub 踏み台サーバ (hub-jump-centos) のパブリックIP に対する DNS レコードの登録は削除しています
+## 実行時のエラーについて
+ampls-base-envの [実行時のエラーについて](https://github.com/takutsu001/ampls-base-env?tab=readme-ov-file#%E5%AE%9F%E8%A1%8C%E6%99%82%E3%81%AE%E3%82%A8%E3%83%A9%E3%83%BC%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6) をご参照ください。
