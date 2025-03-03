@@ -21,6 +21,7 @@ https://learn.microsoft.com/ja-jp/azure/azure-resource-manager/bicep/install
 本リポジトリをローカルPCにクローンし、パラメータファイル (main.prod.bicepparam) を修正してご利用ください
 
 **main.prod.bicepparam**
+
 ![](/images/arcprivate-bicepparam.png)
 
 > [!IMPORTANT]
