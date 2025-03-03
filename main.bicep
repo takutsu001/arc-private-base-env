@@ -12,52 +12,42 @@ param resourceGroupLocation string
 param myipaddress string
 
 // ---- param for Hub ----
-param hubVNet1Name string
-param hubVNet1Address string
+param hubVNetName string
+param hubVNetAddress string
 // VM Subnet
-param hubVNet1Subnet1Name string 
-param hubVNet1Subnet1Address string
-// Private Endpoint Subnet
-param hubVNet1Subnet2Name string 
-param hubVNet1Subnet2Address string
-// DNS Resolver Subnet
-param hubVNet1Subnet3Name string
-param hubVNet1Subnet3Address string
+param hubSubnetName1 string 
+param hubSubnetAddress1 string
+// Firewall Subnet
+param hubSubnetName2 string 
+param hubSubnetAddress2 string
 // VPN Gateway Subnet
-param hubVNet1Subnet4Name string
-param hubVNet1Subnet4Address string
+param hubSubnetName3 string
+param hubSubnetAddress3 string
+// for Azure Arc Private Link Scope
+param privateLinkScopeName string
 
-// ---- param for Onpre VNet1----
-// VNet1
-param onpreVNet1Name string
-param onpreVNet1Address string
-// VNet1 - VM Subnet
-param onpreVNet1Subnet1Name string 
-param onpreVNet1Subnet1Address string
-// VNet1 - VPN Gateway Subnet
-param onpreVNet1Subnet2Name string
-param onpreVNet1Subnet2Address string
-// ---- param for Onpre VNet2----
-// VNet2
+// ---- param for Onpre ----
+// VNet #1
+param onpreVNetName string
+param onpreVNetAddress string
+// VM Subnet
+param onpreSubnetName1 string 
+param onpreSubnetAddress1 string
+// VPN Gateway Subnet
+param onpreSubnetName2 string
+param onpreSubnetAddress2 string
+// VNet #2
 param onpreVNet2Name string
 param onpreVNet2Address string
-// VNet2 - DNS Server Subnet
-param onpreVNet2Subnet1Name string
-param onpreVNet2Subnet1Address string
-// ---- param for VM on vNet1 ----
-param onpreVNet1vm1Name string
-param onpreVNet1vm1OSType string
-param onpreVNet1vm1pip string
-param onpreVNet1vm2Name string
-param onpreVNet1vm2OSType string
-param onpreVNet1vm2pip string
-// ---- param for VM on vNet2 ----
-param onpreVNet2vm1Name string
-param onpreVNet2vm1OSType string
-param onpreVNet2vm1pip string
-// ---- param for VM common ----
+// DNS Subnet
+param onpreSubnet2Name1 string 
+param onpreSubnet2Address1 string
+
+// ---- param for VM ----
 param vmSizeWindows string
-param spotvm string
+////param onprevmName1 string
+param onprevmName2 string
+param onprevm2ip string
 @secure()
 param adminUserName string
 @secure()
@@ -91,55 +81,46 @@ module section
 ---------------
 */
 
-// Create Hub Environment (VNet, Subnet, NSG, VPN Gateway, Local Network Gateway)
+// Create Hub Environment (VM-Linux VNet, Subnet, NSG, VNet Peering, VPN Gateway, Local Network Gateway)
 module HubModule './modules/hubEnv.bicep' = { 
   scope: newRG 
   name: 'CreateHubEnv' 
   params: { 
     location: resourceGroupLocation
-    hubVNet1Name: hubVNet1Name
-    hubVNet1Address: hubVNet1Address
-    hubVNet1Subnet1Name: hubVNet1Subnet1Name
-    hubVNet1Subnet1Address: hubVNet1Subnet1Address
-    hubVNet1Subnet2Name: hubVNet1Subnet2Name
-    hubVNet1Subnet2Address: hubVNet1Subnet2Address
-    hubVNet1Subnet3Name: hubVNet1Subnet3Name
-    hubVNet1Subnet3Address: hubVNet1Subnet3Address
-    hubVNet1Subnet4Name: hubVNet1Subnet4Name
-    hubVNet1Subnet4Address: hubVNet1Subnet4Address
+    hubVNetName: hubVNetName
+    hubVNetAddress: hubVNetAddress
+    hubSubnetName1: hubSubnetName1
+    hubSubnetAddress1: hubSubnetAddress1
+    hubSubnetName2: hubSubnetName2
+    hubSubnetAddress2: hubSubnetAddress2
+    hubSubnetName3: hubSubnetName3
+    hubSubnetAddress3: hubSubnetAddress3
     hubVPNGWName: hubVPNGWName
     hubLngName: hubLngName
+    privateLinkScopeName: privateLinkScopeName
   } 
 }
 
-// Create Onpre Environment (VM-Windows VNet, Subnet, NSG, Vnet Peering, VPN Gateway, Local Network Gateway)
+// Create Onpre Environment (VM-Linux VNet, Subnet, NSG, Vnet Peering, VPN Gateway, Local Network Gateway)
 module OnpreModule './modules/onpreEnv.bicep' = { 
   scope: newRG 
   name: 'CreateOnpreEnv' 
   params: { 
     location: resourceGroupLocation
     myipaddress: myipaddress
-    onpreVNet1Name: onpreVNet1Name
-    onpreVNet1Address: onpreVNet1Address
-    onpreVNet1Subnet1Name: onpreVNet1Subnet1Name
-    onpreVNet1Subnet1Address: onpreVNet1Subnet1Address
-    onpreVNet1Subnet2Name: onpreVNet1Subnet2Name
-    onpreVNet1Subnet2Address: onpreVNet1Subnet2Address
+    onpreVNetName: onpreVNetName
+    onpreVNetAddress: onpreVNetAddress
+    onpreSubnetName1: onpreSubnetName1
+    onpreSubnetAddress1: onpreSubnetAddress1
+    onpreSubnetName2: onpreSubnetName2
+    onpreSubnetAddress2: onpreSubnetAddress2
     onpreVNet2Name: onpreVNet2Name
     onpreVNet2Address: onpreVNet2Address
-    onpreVNet2Subnet1Name: onpreVNet2Subnet1Name
-    onpreVNet2Subnet1Address: onpreVNet2Subnet1Address
-    onpreVNet1vm1Name: onpreVNet1vm1Name
-    onpreVNet1vm1OSType: onpreVNet1vm1OSType
-    onpreVNet1vm1pip: onpreVNet1vm1pip
-    onpreVNet1vm2Name: onpreVNet1vm2Name
-    onpreVNet1vm2OSType: onpreVNet1vm2OSType
-    onpreVNet1vm2pip: onpreVNet1vm2pip
-    onpreVNet2vm1Name: onpreVNet2vm1Name
-    onpreVNet2vm1OSType: onpreVNet2vm1OSType
-    onpreVNet2vm1pip: onpreVNet2vm1pip 
+    onpreSubnet2Name1: onpreSubnet2Name1
+    onpreSubnet2Address1: onpreSubnet2Address1
+    onprevmName2: onprevmName2
+    onprevm2ip: onprevm2ip
     vmSizeWindows: vmSizeWindows
-    spotvm: spotvm 
     adminUserName: adminUserName
     adminPassword: adminPassword
     onpreVPNGWName: onpreVPNGWName
