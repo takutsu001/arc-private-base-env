@@ -5,66 +5,60 @@ param section
 */
 // Common
 param location string
-param hubVNet1Name string 
-param hubVNet1Address string
-// VM Subnet
-param hubVNet1Subnet1Name string 
-param hubVNet1Subnet1Address string
-// Private Endpoint Subnet
-param hubVNet1Subnet2Name string 
-param hubVNet1Subnet2Address string
-// DNS Resolver Subnet
-param hubVNet1Subnet3Name string
-param hubVNet1Subnet3Address string
+param hubVNetName string 
+// VNet
+param hubVNetAddress string
+// PE Subnet
+param hubSubnetName1 string
+param hubSubnetAddress1 string
+// DNS Subnet
+param hubSubnetName2 string
+param hubSubnetAddress2 string
 // VPN Gateway Subnet
-param hubVNet1Subnet4Name string
-param hubVNet1Subnet4Address string
+param hubSubnetName3 string
+param hubSubnetAddress3 string
 // for VPN Gateway
 param hubVPNGWName string
 param hubLngName string
+// for Azure Arc Private Link Scope
+//param aaplsName string
+param privateLinkScopeName string
 
 /*
 ------------------
 var section
 ------------------
 */
-// VM Subnet
-var hubVNet1Subnet1 = { 
-  name: hubVNet1Subnet1Name 
+// PE Subnet
+var hubSubnet1 = { 
+  name: hubSubnetName1 
   properties: { 
-    addressPrefix: hubVNet1Subnet1Address
+    addressPrefix: hubSubnetAddress1
     networkSecurityGroup: {
-    id: nsgDefault.id
+      id: nsgDefault.id
     }
   }
 }
-// Private Endpoint Subnet
-var hubVNet1Subnet2 = { 
-  name: hubVNet1Subnet2Name 
+// DNS Subnet
+var hubSubnet2 = { 
+  name: hubSubnetName2 
   properties: { 
-    addressPrefix: hubVNet1Subnet2Address
-    networkSecurityGroup: {
-      id: nsgDefault.id
-    }
+    addressPrefix: hubSubnetAddress2
   }
 } 
-// DNS Resolver Subnet
-var hubVNet1Subnet3 = { 
-  name: hubVNet1Subnet3Name
-  properties: { 
-    addressPrefix: hubVNet1Subnet3Address
-    networkSecurityGroup: {
-      id: nsgDefault.id
-    }
-  } 
-} 
 // VPN Gateway Subnet
-var hubVNet1Subnet4 = { 
-  name: hubVNet1Subnet4Name 
+var hubSubnet3 = { 
+  name: hubSubnetName3 
   properties: { 
-    addressPrefix: hubVNet1Subnet4Address
+    addressPrefix: hubSubnetAddress3
   } 
 } 
+// DNSゾーンの定義（ESU用）
+var arcPrivateDnsZones = [
+  'privatelink.his.arc.azure.com'
+  'privatelink.guestconfiguration.azure.com'
+  'privatelink.dp.kubernetesconfiguration.azure.com'
+]
 
 /*
 ------------------
@@ -74,48 +68,38 @@ resource section
 
 // create network security group for hub vnet
 resource nsgDefault 'Microsoft.Network/networkSecurityGroups@2023-04-01' = {
-  name: 'hub-nsg'
+  name: '${hubVNetName}-nsg'
   location: location
   properties: {
-  //  securityRules: [
-  //    {
-  //      name: 'Allow-RDP'
-  //      properties: {
-  //      description: 'RDP access permission from your own PC.'
-  //     protocol: 'TCP'
-  //      sourcePortRange: '*'
-  //      destinationPortRange: '3389'
-  //      sourceAddressPrefix: myipaddress
-  //      destinationAddressPrefix: '*'
-  //      access: 'Allow'
-  //      priority: 1000
-  //      direction: 'Inbound'
-  //    }
-  //  }
-  //]
+    // securityRulesなどの設定
   }
 }
 
 // create hubVNet & hubSubnet
 resource hubVNet 'Microsoft.Network/virtualNetworks@2021-05-01' = { 
-  name: hubVNet1Name 
+  name: hubVNetName 
   location: location 
   properties: { 
     addressSpace: { 
       addressPrefixes: [ 
-        hubVNet1Address 
+        hubVNetAddress 
       ] 
     } 
     subnets: [ 
-      hubVNet1Subnet1
-      hubVNet1Subnet2
-      hubVNet1Subnet3
-      hubVNet1Subnet4
+      hubSubnet1
+      hubSubnet2
+      hubSubnet3
     ]
   }
+
+  // Get subnet information where Private Endpoint is connected.
+  resource hubPESubnet 'subnets' existing = {
+    name: hubSubnetName1
+  }
+
   // Get subnet information where VPN Gateway is connected.
   resource hubGatewaySubnet 'subnets' existing = {
-    name: hubVNet1Subnet4Name
+    name: hubSubnetName3
   }
 }
 
@@ -152,13 +136,11 @@ resource hubVPNGW 'Microsoft.Network/virtualNetworkGateways@2023-06-01' = {
         }
       }
     ]
-    natRules: []
-    virtualNetworkGatewayPolicyGroups: []
     enableBgpRouteTranslationForNat: false
     disableIPSecReplayProtection: false
     sku: {
-      name: 'vpngw1'
-      tier: 'vpngw1'
+      name: 'Vpngw1'
+      tier: 'Vpngw1'
     }
     gatewayType: 'Vpn'
     vpnType: 'RouteBased'
@@ -176,18 +158,109 @@ resource hubLng 'Microsoft.Network/localNetworkGateways@2023-06-01' = {
   location: location
   properties: {
     localNetworkAddressSpace: {
-      addressPrefixes: ['${hubVNet1Address}']
+      addressPrefixes: ['${hubVNetAddress}']
     }
     gatewayIpAddress: hubVPNGWpip.properties.ipAddress
   }
 }
+
+// Create Private Link Scope
+resource privateLinkScope 'Microsoft.HybridCompute/privateLinkScopes@2021-05-20' = {
+  name: privateLinkScopeName
+  location: location
+  properties: {
+    publicNetworkAccess: 'Disabled'
+  }
+}
+
+// Create Private Endpoint
+resource privateEndpoint 'Microsoft.Network/privateEndpoints@2021-05-01' = {
+  name: 'Arc-PE'
+  location: location
+  properties: {
+    subnet: {
+      id: hubVNet::hubPESubnet.id
+    }
+    privateLinkServiceConnections: [
+      {
+        name: 'aapls-connection'
+        properties: {
+          privateLinkServiceId: privateLinkScope.id
+          groupIds: [
+            'hybridcompute'
+          ]
+        }
+      }
+    ]
+  }
+  dependsOn: [
+    privateLinkScope
+  ]
+}
+
+// Create Private DNS zone for ESU
+resource privateDnsZones 'Microsoft.Network/privateDnsZones@2020-06-01' = [
+  for zoneName in arcPrivateDnsZones: {
+    name: zoneName
+    location: 'global'
+    properties: {}
+  }
+]
+
+// Create Private DNS zone group for ESU
+resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-02-01' = {
+  name: 'default'
+  parent: privateEndpoint
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'privatelink-his-arc-azure-com'
+        properties: {
+          privateDnsZoneId: privateDnsZones[0].id
+        }
+      }
+      {
+        name: 'privatelink-guestconfiguration-azure-com'
+        properties: {
+          privateDnsZoneId: privateDnsZones[1].id
+        }
+      }
+      {
+        name: 'privatelink-dp-kubernetesconfiguration-azure-com'
+        properties: {
+          privateDnsZoneId: privateDnsZones[2].id
+        }
+      }
+    ]
+  }
+  dependsOn: [
+    privateDnsZones
+    privateEndpoint
+  ]
+}
+
+// Link private DNS zone to VNet
+resource privateDnsZoneVnetLinks 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = [
+  for zoneName in arcPrivateDnsZones: {
+    name: '${zoneName}/aapls-vnetlink'
+    location: 'global'
+    properties: {
+      virtualNetwork: {
+        id: hubVNet.id
+      }
+      registrationEnabled: false
+    }
+    dependsOn: [
+      privateDnsZones
+    ]
+  }
+]
 
 /*
 ------------------
 output section
 ------------------
 */
-
 // return the vpn gateway ID and LNG ID to use from parent template
 output hubVPNGWId string = hubVPNGW.id
 output hubLngId string = hubLng.id
