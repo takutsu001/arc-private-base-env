@@ -3,7 +3,7 @@
 本 Bicep は [Azure Arc へのオンプレサーバーの登録（閉域化）](https://zenn.dev/microsoft/articles/zenn-arc-esu-private) のベース環境を作成するBicepです
 
 ## 構成図
-![](arcprivate-topology.png)
+![](/images/arcprivate-topology.png)
 
 > [!NOTE]
 > - 本環境では オンプレVM と DNS Private Resolver は作成されません (サブネットは作成されます) 
