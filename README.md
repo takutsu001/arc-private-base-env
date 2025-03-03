@@ -1,6 +1,6 @@
 # arc-private-base-env
 ## はじめに
-本 Bicep は [Azure Files 検証環境用](https://zenn.dev/microsoft/articles/zenn-arc-esu-private) のベース環境を作成するBicepです
+本 Bicep は [Azure Arc へのオンプレサーバーの登録（閉域化） 検証環境用](https://zenn.dev/microsoft/articles/zenn-arc-esu-private) のベース環境を作成するBicepです
 
 ## 構成図
 ![](arcprivate-topology.png)
